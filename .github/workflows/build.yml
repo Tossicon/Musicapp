@@ -13,36 +13,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.11.1"
-
+      - name: Estrai il progetto
+        run: |
+          TAR=$(find . -name 'progetto.tar.gz' | head -1)
+          echo "Archivio trovato: $TAR"
+          tar xzf "$TAR"
       - name: Trova la cartella del progetto
         id: find
         run: |
-          DIR=$(dirname "$(find . -name settings.gradle.kts -not -path '*/build/*' | head -1)")
+          DIR=$(dirname "$(find . -name settings.gradle.kts -not -path '*/.github/*' -not -path '*/build/*' | head -1)")
           echo "dir=$DIR" >> "$GITHUB_OUTPUT"
-          echo "Progetto trovato in: $DIR"
-
+          echo "Progetto in: $DIR"
       - name: Ricostruisci la chiave di firma
         run: base64 -d "${{ steps.find.outputs.dir }}/app/personale.keystore.b64" > "${{ steps.find.outputs.dir }}/app/personale.keystore"
-
       - name: Compila
         working-directory: ${{ steps.find.outputs.dir }}
         run: gradle assembleRelease --no-daemon --stacktrace
-
       - name: Rinomina APK
         run: cp "${{ steps.find.outputs.dir }}"/app/build/outputs/apk/release/app-release.apk la-mia-musica.apk
-
       - name: Pubblica nella pagina Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.1.${{ github.run_number }}
           name: La mia musica ${{ github.run_number }}
           files: la-mia-musica.apk
+          
